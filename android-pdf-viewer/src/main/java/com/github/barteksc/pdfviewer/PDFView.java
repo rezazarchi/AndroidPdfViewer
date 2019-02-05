@@ -87,7 +87,7 @@ import java.util.List;
  * - DocumentPage = A page of the PDF document.
  * - UserPage = A page as defined by the user.
  * By default, they're the same. But the user can change the pages order
- * using {@link #load(DocumentSource, String, int[])}. In this
+ * using {@link #load(DocumentSource, String, int[], boolean)}. In this
  * particular case, a userPage of 5 can refer to a documentPage of 17.
  */
 public class PDFView extends RelativeLayout {
@@ -172,6 +172,8 @@ public class PDFView extends RelativeLayout {
     private FitPolicy pageFitPolicy = FitPolicy.WIDTH;
 
     private int defaultPage = 0;
+
+    private boolean loadReverse;
 
     /** True if should scroll through pages vertically instead of horizontally */
     private boolean swipeVertical = true;
@@ -261,11 +263,11 @@ public class PDFView extends RelativeLayout {
         setWillNotDraw(false);
     }
 
-    private void load(DocumentSource docSource, String password) {
-        load(docSource, password, null);
+    private void load(DocumentSource docSource, String password, boolean loadReverse) {
+        load(docSource, password, null, loadReverse);
     }
 
-    private void load(DocumentSource docSource, String password, int[] userPages) {
+    private void load(DocumentSource docSource, String password, int[] userPages, boolean loadReverse) {
 
         if (!recycled) {
             throw new IllegalStateException("Don't call load on a PDF View without recycling it first.");
@@ -273,7 +275,7 @@ public class PDFView extends RelativeLayout {
 
         recycled = false;
         // Start decoding document
-        decodingAsyncTask = new DecodingAsyncTask(docSource, password, userPages, this, pdfiumCore);
+        decodingAsyncTask = new DecodingAsyncTask(docSource, password, userPages, this, pdfiumCore, loadReverse);
         decodingAsyncTask.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
@@ -736,8 +738,10 @@ public class PDFView extends RelativeLayout {
         dragPinchManager.enable();
 
         callbacks.callOnLoadComplete(pdfFile.getPagesCount());
-
-        jumpTo(defaultPage, false);
+        if (defaultPage == 0 && loadReverse)
+            jumpTo(pdfFile.getPagesCount() - 1);
+        else
+            jumpTo(defaultPage, false);
     }
 
     void loadError(Throwable t) {
@@ -1086,6 +1090,10 @@ public class PDFView extends RelativeLayout {
         this.defaultPage = defaultPage;
     }
 
+    private void setLoadReverse(boolean loadReverse) {
+        this.loadReverse = loadReverse;
+    }
+
     public void resetZoom() {
         zoomTo(minZoom);
     }
@@ -1336,8 +1344,15 @@ public class PDFView extends RelativeLayout {
 
         private boolean nightMode = false;
 
+        private boolean loadReverse = false;
+
         private Configurator(DocumentSource documentSource) {
             this.documentSource = documentSource;
+        }
+
+        public Configurator loadReverse(boolean loadReverse) {
+            this.loadReverse = loadReverse;
+            return this;
         }
 
         public Configurator pages(int... pageNumbers) {
@@ -1491,6 +1506,7 @@ public class PDFView extends RelativeLayout {
             PDFView.this.setNightMode(nightMode);
             PDFView.this.enableDoubletap(enableDoubletap);
             PDFView.this.setDefaultPage(defaultPage);
+            PDFView.this.setLoadReverse(loadReverse);
             PDFView.this.setSwipeVertical(!swipeHorizontal);
             PDFView.this.enableAnnotationRendering(annotationRendering);
             PDFView.this.setScrollHandle(scrollHandle);
@@ -1502,9 +1518,9 @@ public class PDFView extends RelativeLayout {
             PDFView.this.setPageFling(pageFling);
 
             if (pageNumbers != null) {
-                PDFView.this.load(documentSource, password, pageNumbers);
+                PDFView.this.load(documentSource, password, pageNumbers, loadReverse);
             } else {
-                PDFView.this.load(documentSource, password);
+                PDFView.this.load(documentSource, password, loadReverse);
             }
         }
     }

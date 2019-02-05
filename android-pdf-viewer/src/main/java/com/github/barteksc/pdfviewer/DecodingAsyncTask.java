@@ -31,16 +31,18 @@ class DecodingAsyncTask extends AsyncTask<Void, Void, Throwable> {
     private PdfiumCore pdfiumCore;
     private String password;
     private DocumentSource docSource;
+    private boolean loadReverse;
     private int[] userPages;
     private PdfFile pdfFile;
 
-    DecodingAsyncTask(DocumentSource docSource, String password, int[] userPages, PDFView pdfView, PdfiumCore pdfiumCore) {
+    DecodingAsyncTask(DocumentSource docSource, String password, int[] userPages, PDFView pdfView, PdfiumCore pdfiumCore, boolean loadReverse) {
         this.docSource = docSource;
         this.userPages = userPages;
         this.cancelled = false;
         this.pdfView = pdfView;
         this.password = password;
         this.pdfiumCore = pdfiumCore;
+        this.loadReverse = loadReverse;
     }
 
     @Override
@@ -49,6 +51,14 @@ class DecodingAsyncTask extends AsyncTask<Void, Void, Throwable> {
             PdfDocument pdfDocument = docSource.createDocument(pdfView.getContext(), pdfiumCore, password);
             pdfFile = new PdfFile(pdfiumCore, pdfDocument, pdfView.getPageFitPolicy(), getViewSize(),
                     userPages, pdfView.isSwipeVertical(), pdfView.getSpacingPx(), pdfView.doAutoSpacing());
+            if (loadReverse) {
+                int pagesCount = pdfFile.getPagesCount();
+                int[] pageNumbers = new int[pagesCount];
+                for (int i = pagesCount - 1; i >= 0; i--)
+                    pageNumbers[i] = pagesCount - i - 1;
+                pdfFile = new PdfFile(pdfiumCore, pdfDocument, pdfView.getPageFitPolicy(), getViewSize(),
+                        pageNumbers, pdfView.isSwipeVertical(), pdfView.getSpacingPx(), pdfView.doAutoSpacing());
+            }
             return null;
         } catch (Throwable t) {
             return t;
