@@ -319,7 +319,10 @@ public class PDFView extends RelativeLayout {
         // Check the page number and makes the
         // difference between UserPages and DocumentPages
         pageNb = pdfFile.determineValidPageNumberFrom(pageNb);
-        currentPage = pageNb;
+        if (loadReverse)
+            currentPage = pdfFile.getPagesCount() - pageNb - 1;
+        else
+            currentPage = pageNb;
 
         loadPages();
 
