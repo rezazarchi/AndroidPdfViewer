@@ -738,8 +738,8 @@ public class PDFView extends RelativeLayout {
         dragPinchManager.enable();
 
         callbacks.callOnLoadComplete(pdfFile.getPagesCount());
-        if (defaultPage == 0 && loadReverse)
-            jumpTo(pdfFile.getPagesCount() - 1);
+        if (loadReverse)
+            jumpTo(pdfFile.getPagesCount() - defaultPage, false);
         else
             jumpTo(defaultPage, false);
     }
